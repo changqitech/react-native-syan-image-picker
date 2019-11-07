@@ -6,6 +6,12 @@
 #import <AssetsLibrary/AssetsLibrary.h>
 #import <React/RCTUtils.h>
 
+#ifdef DEBUG
+#define SLLog(format, ...) printf("[%s] %s [第%d行] %s\n", __TIME__, __FUNCTION__, __LINE__, [[NSString stringWithFormat:format, ## __VA_ARGS__] UTF8String]);
+#else
+#define NSLog(format, ...)
+#endif
+
 @interface RNSyanImagePicker ()
 
 @property (nonatomic, strong) UIImagePickerController *imagePickerVc;
@@ -129,7 +135,7 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
     imagePickerVc.allowTakePicture = isCamera; // 允许用户在内部拍照
     imagePickerVc.allowPickingVideo = allowPickingVideo; // 不允许视频
     imagePickerVc.allowPickingImage = allowPickingImage;
-    imagePickerVc.allowTakeVideo = NO;
+    imagePickerVc.allowTakeVideo = true;
     imagePickerVc.videoMaximumDuration = videoMaximumDuration;
     imagePickerVc.allowPickingMultipleVideo = allowPickingMultipleVideo;
     imagePickerVc.allowPickingOriginalPhoto = allowPickingOriginalPhoto; // 允许原图
@@ -158,7 +164,7 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
         }
     }
 
-    __weak TZImagePickerController *weakPicker = imagePickerVc;
+    __block TZImagePickerController *weakPicker = imagePickerVc;
     [imagePickerVc setDidFinishPickingPhotosWithInfosHandle:^(NSArray<UIImage *> *photos,NSArray *assets,BOOL isSelectOriginalPhoto,NSArray<NSDictionary *> *infos) {
         NSMutableArray *selectArray = [NSMutableArray array];
         for (NSInteger i = 0; i < assets.count; i++) {
@@ -173,6 +179,9 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
                     video[@"type"] = @"video";
                 }
                 video[@"duration"] = @(asset.duration);
+                video[@"width"] = @(asset.pixelWidth);
+                video[@"height"] = @(asset.pixelHeight);
+                
                 NSData *imageData = UIImagePNGRepresentation(photos[i]);
                 NSString *fileName = [NSString stringWithFormat:@"%@.png", [[NSUUID UUID] UUIDString]];
                 [self createDir];
@@ -181,6 +190,7 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
                     video[@"coverUri"] = filePath;
                 }
                 [selectArray addObject:video];
+                
                 if(selectArray.count == assets.count) {
                     callback(@[[NSNull null], selectArray]);
                     [weakPicker dismissViewControllerAnimated:YES completion:nil];
@@ -208,6 +218,9 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
                 video[@"type"] = @"video";
             }
             video[@"duration"] = @(asset.duration);
+            video[@"width"] = @(asset.pixelWidth);
+            video[@"height"] = @(asset.pixelHeight);
+            
             NSData *imageData = UIImagePNGRepresentation(coverImage);
             NSString *fileName = [NSString stringWithFormat:@"%@.png", [[NSUUID UUID] UUIDString]];
             [self createDir];
@@ -226,7 +239,7 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
         }];
     }];
 
-    __weak TZImagePickerController *weakPickerVc = imagePickerVc;
+    __block TZImagePickerController *weakPickerVc = imagePickerVc;
     [imagePickerVc setImagePickerControllerDidCancelHandle:^{
         callback(@[@"取消"]);
         [weakPicker dismissViewControllerAnimated:YES completion:nil];
@@ -283,7 +296,7 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
         }
     }
 
-    __weak TZImagePickerController *weakPicker = imagePickerVc;
+    __block TZImagePickerController *weakPicker = imagePickerVc;
     [imagePickerVc setDidFinishPickingPhotosWithInfosHandle:^(NSArray<UIImage *> *photos,NSArray *assets,BOOL isSelectOriginalPhoto,NSArray<NSDictionary *> *infos) {
         if (isRecordSelected) {
             self.selectedAssets = [NSMutableArray arrayWithArray:assets];
@@ -291,20 +304,17 @@ RCT_EXPORT_METHOD(openVideoPicker:(NSDictionary *)options callback:(RCTResponseS
         NSMutableArray *selectedPhotos = [NSMutableArray array];
         [weakPicker showProgressHUD];
         if (imageCount == 1 && isCrop) {
-            //增加png保留透明度功能
-            [selectedPhotos addObject:[self handleImageData:photos[0] info:infos[0] quality:quality]];
+            [selectedPhotos addObject:[self handleImageData:photos[0] quality:quality]];
         } else {
             [infos enumerateObjectsUsingBlock:^(NSDictionary * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-                //增加png保留透明度功能
-                [selectedPhotos addObject:[self handleImageData:photos[idx] info:infos[idx] quality:quality]];
-                
+                [selectedPhotos addObject:[self handleImageData:photos[idx] quality:quality]];
             }];
         }
         [self invokeSuccessWithResult:selectedPhotos];
         [weakPicker hideProgressHUD];
     }];
 
-    __weak TZImagePickerController *weakPickerVc = imagePickerVc;
+    __block TZImagePickerController *weakPickerVc = imagePickerVc;
     [imagePickerVc setImagePickerControllerDidCancelHandle:^{
         [self invokeError];
         [weakPickerVc hideProgressHUD];
