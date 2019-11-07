@@ -279,7 +279,7 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
                 .openGallery(PictureMimeType.ofVideo())//全部.PictureMimeType.ofAll()、图片.ofImage()、视频.ofVideo()、音频.ofAudio()
                 .selectionMedia(selectList) // 当前已选中的视频 List
                 .openClickSound(false)// 是否开启点击声音 true or false
-                .isCamera(false)// 是否显示拍照按钮 true or false
+                .isCamera(true)// 是否显示拍照按钮 true or false
                 .maxSelectNum(videoCount)// 最大视频选择数量 int
                 .minSelectNum(1)// 最小选择数量 int
                 .imageSpanCount(4)// 每行显示个数 int
@@ -329,6 +329,8 @@ public class RNSyanImagePickerModule extends ReactContextBaseJavaModule {
             videoMap.putString("duration", media.getDuration() + "");
             videoMap.putString("fileName", new File(media.getPath()).getName());
             videoMap.putString("uri", "file://" + media.getPath());
+            videoMap.putInt("width", media.getWidth());
+            videoMap.putInt("height", media.getHeight());
             videoMap.putString("type", "video");
             videoList.pushMap(videoMap);
         }
